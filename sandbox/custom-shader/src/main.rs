@@ -1,14 +1,15 @@
+mod material;
 mod orbit_cam;
 
 use bevy::{
+    pbr::wireframe::{Wireframe, WireframePlugin},
     prelude::*,
-    reflect::TypeUuid,
     render::{
-        render_resource::{AsBindGroup, ShaderRef},
-        settings::{PowerPreference, WgpuSettings},
+        settings::{PowerPreference, WgpuFeatures, WgpuSettings},
         RenderPlugin,
     },
 };
+use material::MyMaterial;
 use orbit_cam::OrbitCamera;
 
 const CLEAR: Color = Color::GRAY;
@@ -35,10 +36,12 @@ fn main() {
                 .set(RenderPlugin {
                     wgpu_settings: WgpuSettings {
                         power_preference: PowerPreference::HighPerformance,
+                        features: WgpuFeatures::POLYGON_MODE_LINE,
                         ..Default::default()
                     },
                 }),
         )
+        .add_plugin(WireframePlugin)
         .add_plugin(MaterialPlugin::<MyMaterial>::default())
         .add_plugin(OrbitCamera::default())
         .add_startup_system(setup)
@@ -60,28 +63,8 @@ fn setup(
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..Default::default()
         })
-        .insert(Movable);
-}
-
-#[derive(AsBindGroup, TypeUuid, Clone)]
-#[uuid = "4a558437-427d-4904-a6f8-c51c5f10fe4e"]
-struct MyMaterial {
-    #[uniform(0)]
-    color: Color,
-}
-
-impl Material for MyMaterial {
-    // fn vertex_shader() -> ShaderRef {
-    //     "my_material.wgsl".into()
-    // }
-
-    fn fragment_shader() -> ShaderRef {
-        "my_material.wgsl".into()
-    }
-
-    fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Blend
-    }
+        .insert(Movable)
+        .insert(Wireframe);
 }
 
 #[derive(Component)]
