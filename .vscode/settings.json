@@ -1,0 +1,7 @@
+{
+    "wgsl-analyzer.customImports": {
+        "bevy_shader_utils::simplex_noise_2d": "${workspaceFolder}/libs/bevy_shader_utils/shaders/simplex_noise_2d.wgsl",
+        "bevy_shader_utils::simplex_noise_3d": "${workspaceFolder}/libs/bevy_shader_utils/shaders/simplex_noise_3d.wgsl",
+    },
+    "autoHide.autoHidePanel": true
+}

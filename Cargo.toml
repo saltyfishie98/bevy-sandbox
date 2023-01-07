@@ -1,0 +1,21 @@
+[workspace]
+package.edition = "2021"
+resolver = "2"
+members = ["sandbox/*", "libs/*"]
+
+[workspace.dependencies]
+bevy = { git = "https://github.com/bevyengine/bevy.git" }
+bevy_basic_camera = { path = "libs/bevy_basic_camera" }
+bevy_shader_utils = { path = "libs/bevy_shader_utils" }
+
+
+# Optimization settings
+
+[profile.dev]
+opt-level = 1
+
+[profile.release]
+opt-level = 3
+
+[profile.dev.package."*"]
+opt-level = 3
