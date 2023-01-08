@@ -2,9 +2,10 @@
 package.edition = "2021"
 resolver = "2"
 members = ["sandbox/*", "libs/*"]
+exclude = ["references/logic_compute_shaders"]
 
 [workspace.dependencies]
-bevy = { git = "https://github.com/bevyengine/bevy.git" }
+bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "1efdbb7e3ea2c7226385eb457123322430891b1d" }
 bevy_basic_camera = { path = "libs/bevy_basic_camera" }
 bevy_shader_utils = { path = "libs/bevy_shader_utils" }
 

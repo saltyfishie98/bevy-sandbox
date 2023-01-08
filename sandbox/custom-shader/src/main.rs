@@ -1,7 +1,9 @@
 mod material;
 mod orbit_cam;
+mod primitives;
 
 use bevy::{
+    log::LogPlugin,
     pbr::wireframe::{Wireframe, WireframePlugin},
     prelude::*,
     render::{
@@ -17,11 +19,17 @@ const ASPECT_RATIO: f32 = 16.0 / 9.0;
 const HEIGHT: f32 = 600.0;
 
 fn main() {
-    let mut app = App::new();
+    let mut application = App::new();
 
-    app.insert_resource(ClearColor(CLEAR))
+    application
+        .register_type::<primitives::SegmentedPlane>()
+        .insert_resource(ClearColor(CLEAR))
         .add_plugins(
             DefaultPlugins
+                .set(LogPlugin {
+                    filter: "winit=info,bevy_render=info,custom_shader=debug".into(),
+                    level: bevy::log::Level::ERROR,
+                })
                 .set(WindowPlugin {
                     window: WindowDescriptor {
                         title: "test-window".into(),
@@ -56,7 +64,10 @@ fn setup(
 ) {
     commands
         .spawn(MaterialMeshBundle {
-            mesh: mesh_assets.add(Mesh::from(shape::Cube::default())).into(),
+            mesh: mesh_assets
+                // .add(Mesh::from(shape::Quad::default()))
+                .add(Mesh::from(primitives::SegmentedPlane::default()))
+                .into(),
             material: custom_material_assets.add(MyMaterial {
                 color: Color::ORANGE,
             }),
