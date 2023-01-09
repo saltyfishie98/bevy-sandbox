@@ -149,17 +149,13 @@ pub mod plugin {
     impl Default for CubeSphereDebugWireframe {
         fn default() -> Self {
             Self {
-                show_wireframe: false,
+                show_wireframe: true,
             }
         }
     }
 
     fn insert_debug_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
-        println!("here");
-
         for entt in query.iter() {
-            println!("here 1");
-
             if let Some(mut entity) = commands.get_entity(entt) {
                 entity.insert(CubeSphereDebugWireframe::default());
             };

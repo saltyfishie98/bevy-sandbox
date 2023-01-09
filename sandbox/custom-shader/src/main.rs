@@ -19,6 +19,8 @@ fn main() {
         .register_type::<MyMaterial>()
         .register_type::<Movable>()
         .insert_resource(ClearColor(CLEAR))
+        //
+        // App settings
         .add_plugins(
             DefaultPlugins
                 .set(LogPlugin {
@@ -41,9 +43,11 @@ fn main() {
         .add_plugin(WorldInspectorPlugin)
         .add_plugin(mesh_data::plugin::DebugCubeSphere)
         //
-        // Settings
+        // Plugins
         .add_plugin(MaterialPlugin::<MyMaterial>::default())
         .add_plugin(OrbitCamera::default())
+        //
+        // Systems
         .add_startup_system(setup)
         .add_system(move_components)
         .run();
@@ -94,6 +98,8 @@ fn setup(
         .insert(Movable)
         .insert(Name::new("Sphere"));
 }
+
+//// Misc Plugins //////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Component, Reflect, Default)]
 #[reflect(Component)]
