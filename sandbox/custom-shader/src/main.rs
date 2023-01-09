@@ -1,7 +1,7 @@
 mod common;
 mod material;
-mod orbit_cam;
 mod primitives;
+mod utils;
 
 use bevy::{
     log::LogPlugin,
@@ -10,7 +10,7 @@ use bevy::{
 };
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use material::MyMaterial;
-use orbit_cam::OrbitCamera;
+use utils::OrbitCamera;
 
 const CLEAR: Color = Color::GRAY;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
