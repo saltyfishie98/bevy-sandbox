@@ -3,43 +3,26 @@ use bevy::{
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
 use bevy_inspector_egui::prelude::*;
-
 use itertools::Itertools;
+
+#[derive(Component, Reflect)]
+pub struct CubeSphere;
 
 #[derive(Debug, Component, Reflect, InspectorOptions)]
 #[reflect(Component, InspectorOptions)]
-pub struct SquareCube {
+pub struct CubeSphereData {
     #[inspector(min = 1)]
     pub resolution: u32,
 }
 
-impl Default for SquareCube {
+impl Default for CubeSphereData {
     fn default() -> Self {
         Self { resolution: 10 }
     }
 }
 
-pub fn update_square_cube(
-    mut meshes: ResMut<Assets<Mesh>>,
-    query: Query<(&SquareCube, &Handle<Mesh>), With<Transform>>,
-) {
-    // println!("{:?}", query);
-    for (cube_data, cube_mesh_handle) in query.iter() {
-        let cube_opt = meshes.get_mut(&cube_mesh_handle);
-        match cube_opt {
-            Some(cube) => {
-                *cube = Mesh::from(cube_data);
-                debug!("updated cube mesh")
-            }
-            None => {
-                debug!("no cube mesh")
-            }
-        }
-    }
-}
-
-impl From<&SquareCube> for Mesh {
-    fn from(plane: &SquareCube) -> Self {
+impl From<&CubeSphereData> for Mesh {
+    fn from(plane: &CubeSphereData) -> Self {
         let faces: Vec<Vec3> = vec![
             [0.0, 0.0, 1.0].into(),  // OUT
             [0.0, 0.0, -1.0].into(), // IN
@@ -69,8 +52,8 @@ impl From<&SquareCube> for Mesh {
             indices_vec.append(&mut face_indices);
         }
 
-        debug!("vertices count: {}", vertices_vec.len());
-        debug!("indices count: {}", indices_vec.len());
+        // debug!("vertices count: {}", vertices_vec.len());
+        // debug!("indices count: {}", indices_vec.len());
 
         // format and set mesh attributes
         let positions: Vec<_> = vertices_vec.iter().map(|(p, _, _)| *p).collect();
@@ -88,6 +71,53 @@ impl From<&SquareCube> for Mesh {
     }
 }
 
+//// Plugins ///////////////////////////////////////////////////////////////////////////////////////
+
+pub mod plugin {
+    use super::*;
+
+    #[allow(dead_code)]
+    pub struct DynamicCubeSphere;
+
+    impl Plugin for DynamicCubeSphere {
+        fn build(&self, app: &mut App) {
+            app.register_type::<CubeSphere>()
+                .register_type::<CubeSphereData>()
+                .add_startup_system_to_stage(StartupStage::PostStartup, insert_dynamic_components)
+                .add_system(update_square_cube);
+        }
+    }
+
+    fn insert_dynamic_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
+        // println!("{:?}", query);
+
+        for entt in query.iter() {
+            if let Some(mut entity) = commands.get_entity(entt) {
+                entity.insert(CubeSphereData::default());
+            }
+        }
+    }
+
+    fn update_square_cube(
+        mut meshes: ResMut<Assets<Mesh>>,
+        query: Query<(&CubeSphereData, &Handle<Mesh>), With<Transform>>,
+    ) {
+        // println!("{:?}", query);
+        for (cube_data, cube_mesh_handle) in query.iter() {
+            let cube_opt = meshes.get_mut(&cube_mesh_handle);
+            match cube_opt {
+                Some(cube) => {
+                    *cube = Mesh::from(cube_data);
+                    // debug!("updated cube mesh")
+                }
+                None => {
+                    // debug!("no cube mesh")
+                }
+            }
+        }
+    }
+}
+
 //// Helpers ///////////////////////////////////////////////////////////////////////////////////////
 
 type VertexData = Vec<([f32; 3], [f32; 3], [f32; 2])>;
@@ -95,7 +125,7 @@ type VertexTemplate =
     itertools::Product<std::ops::RangeInclusive<u32>, std::ops::RangeInclusive<u32>>;
 
 fn create_face_vertices(
-    face: &SquareCube,
+    face: &CubeSphereData,
     face_direction: Vec3,
     vertex_template: VertexTemplate,
 ) -> VertexData {
@@ -142,7 +172,7 @@ fn create_face_vertices(
 }
 
 fn create_face_indices(
-    face: &SquareCube,
+    face: &CubeSphereData,
     index_offset: u32,
     vertex_template: VertexTemplate,
 ) -> Vec<u32> {

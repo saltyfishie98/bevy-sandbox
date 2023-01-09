@@ -3,11 +3,7 @@ mod material;
 mod mesh_data;
 mod utils;
 
-use bevy::{
-    log::LogPlugin,
-    pbr::wireframe::{Wireframe, WireframePlugin},
-    prelude::*,
-};
+use bevy::{log::LogPlugin, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use material::MyMaterial;
 use utils::OrbitCamera;
@@ -22,7 +18,6 @@ fn main() {
     application
         .register_type::<MyMaterial>()
         .register_type::<Movable>()
-        .register_type::<mesh_data::SquareCube>()
         .insert_resource(ClearColor(CLEAR))
         .add_plugins(
             DefaultPlugins
@@ -42,13 +37,15 @@ fn main() {
                     ..Default::default()
                 }),
         )
+        // Debug
         .add_plugin(WorldInspectorPlugin)
-        .add_plugin(WireframePlugin)
+        .add_plugin(mesh_data::plugin::DynamicCubeSphere)
+        //
+        // Settings
         .add_plugin(MaterialPlugin::<MyMaterial>::default())
         .add_plugin(OrbitCamera::default())
         .add_startup_system(setup)
         .add_system(move_components)
-        .add_system(mesh_data::update_square_cube)
         .run();
 }
 
@@ -58,17 +55,14 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands
-        .spawn((
-            mesh_data::SquareCube::default(),
-            MaterialMeshBundle {
-                mesh: meshes.add(Mesh::from(&mesh_data::SquareCube::default())),
-                material: materials.add(Color::ORANGE.into()),
-                transform: Transform::from_xyz(-1.0, 0.0, 0.0),
-                ..Default::default()
-            },
-        ))
+        .spawn(MaterialMeshBundle {
+            mesh: meshes.add(Mesh::from(&mesh_data::CubeSphereData::default())),
+            material: materials.add(Color::ORANGE.into()),
+            transform: Transform::from_xyz(-1.0, 0.0, 0.0),
+            ..Default::default()
+        })
+        .insert(mesh_data::CubeSphere)
         .insert(Movable)
-        .insert(Wireframe)
         .insert(Name::new("Planet"));
 
     commands
