@@ -75,6 +75,7 @@ impl From<&CubeSphereData> for Mesh {
 
 pub mod plugin {
     use super::*;
+    use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 
     #[allow(dead_code)]
     pub struct DynamicCubeSphere;
@@ -114,6 +115,60 @@ pub mod plugin {
                     // debug!("no cube mesh")
                 }
             }
+        }
+    }
+
+    #[allow(dead_code)]
+    pub struct DebugCubeSphere;
+
+    impl Plugin for DebugCubeSphere {
+        fn build(&self, app: &mut App) {
+            app.register_type::<CubeSphereDebugWireframe>()
+                .add_plugin(WireframePlugin)
+                .add_plugin(DynamicCubeSphere)
+                .add_startup_system_to_stage(StartupStage::PostStartup, insert_debug_components)
+                .add_system(toggle_wireframe);
+        }
+    }
+
+    #[derive(Component, Debug, Reflect, InspectorOptions)]
+    #[reflect(Component, Default)]
+    struct CubeSphereDebugWireframe {
+        show_wireframe: bool,
+    }
+
+    impl Default for CubeSphereDebugWireframe {
+        fn default() -> Self {
+            Self {
+                show_wireframe: false,
+            }
+        }
+    }
+
+    fn insert_debug_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
+        println!("here");
+
+        for entt in query.iter() {
+            println!("here 1");
+
+            if let Some(mut entity) = commands.get_entity(entt) {
+                entity.insert(CubeSphereDebugWireframe::default());
+            };
+        }
+    }
+
+    fn toggle_wireframe(
+        mut commands: Commands,
+        query: Query<(Entity, &CubeSphereDebugWireframe), With<CubeSphereData>>,
+    ) {
+        for (entt, debug_info) in query.iter() {
+            if let Some(mut entity) = commands.get_entity(entt) {
+                if debug_info.show_wireframe {
+                    entity.insert(Wireframe);
+                } else {
+                    entity.remove::<Wireframe>();
+                }
+            };
         }
     }
 }
