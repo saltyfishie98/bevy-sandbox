@@ -78,6 +78,15 @@ pub mod plugin {
     use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 
     #[allow(dead_code)]
+    pub struct StaticCubeSphere;
+
+    impl Plugin for StaticCubeSphere {
+        fn build(&self, app: &mut App) {
+            app.register_type::<CubeSphere>();
+        }
+    }
+
+    #[allow(dead_code)]
     pub struct DynamicCubeSphere;
 
     impl Plugin for DynamicCubeSphere {

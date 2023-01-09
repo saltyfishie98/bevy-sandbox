@@ -39,7 +39,7 @@ fn main() {
         )
         // Debug
         .add_plugin(WorldInspectorPlugin)
-        .add_plugin(mesh_data::plugin::DynamicCubeSphere)
+        .add_plugin(mesh_data::plugin::DebugCubeSphere)
         //
         // Settings
         .add_plugin(MaterialPlugin::<MyMaterial>::default())
