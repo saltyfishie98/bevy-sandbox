@@ -1,9 +1,13 @@
 mod common;
 mod material;
-mod primitives;
+mod mesh_data;
 mod utils;
 
-use bevy::{log::LogPlugin, pbr::wireframe::WireframePlugin, prelude::*};
+use bevy::{
+    log::LogPlugin,
+    pbr::wireframe::{Wireframe, WireframePlugin},
+    prelude::*,
+};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use material::MyMaterial;
 use utils::OrbitCamera;
@@ -17,6 +21,8 @@ fn main() {
 
     application
         .register_type::<MyMaterial>()
+        .register_type::<Movable>()
+        .register_type::<mesh_data::SquareCube>()
         .insert_resource(ClearColor(CLEAR))
         .add_plugins(
             DefaultPlugins
@@ -42,6 +48,7 @@ fn main() {
         .add_plugin(OrbitCamera::default())
         .add_startup_system(setup)
         .add_system(move_components)
+        .add_system(mesh_data::update_square_cube)
         .run();
 }
 
@@ -51,18 +58,18 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands
-        .spawn(MaterialMeshBundle {
-            mesh: meshes
-                // .add(Mesh::from(shape::Quad::default()))
-                .add(Mesh::from(primitives::SquareCube::default()))
-                .into(),
-            material: materials.add(Color::ORANGE.into()),
-            transform: Transform::from_xyz(-1.0, 0.0, 0.0),
-            ..Default::default()
-        })
-        // .insert(Wireframe)
+        .spawn((
+            mesh_data::SquareCube::default(),
+            MaterialMeshBundle {
+                mesh: meshes.add(Mesh::from(&mesh_data::SquareCube::default())),
+                material: materials.add(Color::ORANGE.into()),
+                transform: Transform::from_xyz(-1.0, 0.0, 0.0),
+                ..Default::default()
+            },
+        ))
         .insert(Movable)
-        .insert(Name::new("CubeSphere"));
+        .insert(Wireframe)
+        .insert(Name::new("Planet"));
 
     commands
         .spawn(PointLightBundle {
@@ -75,7 +82,7 @@ fn setup(
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         })
-        // .insert(Movable)
+        .insert(Movable)
         .insert(Name::new("Light"));
 
     commands
@@ -94,7 +101,8 @@ fn setup(
         .insert(Name::new("Sphere"));
 }
 
-#[derive(Component)]
+#[derive(Component, Reflect, Default)]
+#[reflect(Component)]
 struct Movable;
 
 fn move_components(
@@ -121,7 +129,3 @@ fn move_components(
         transform.translation += time.delta_seconds() * direction;
     }
 }
-
-#[derive(Component, Reflect, Default)]
-#[reflect(Component)]
-struct Resizable {}

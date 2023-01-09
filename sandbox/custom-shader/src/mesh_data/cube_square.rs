@@ -2,11 +2,14 @@ use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
+use bevy_inspector_egui::prelude::*;
 
 use itertools::Itertools;
 
-#[derive(Debug)]
+#[derive(Debug, Component, Reflect, InspectorOptions)]
+#[reflect(Component, InspectorOptions)]
 pub struct SquareCube {
+    #[inspector(min = 1)]
     pub resolution: u32,
 }
 
@@ -16,8 +19,27 @@ impl Default for SquareCube {
     }
 }
 
-impl From<SquareCube> for Mesh {
-    fn from(plane: SquareCube) -> Self {
+pub fn update_square_cube(
+    mut meshes: ResMut<Assets<Mesh>>,
+    query: Query<(&SquareCube, &Handle<Mesh>), With<Transform>>,
+) {
+    // println!("{:?}", query);
+    for (cube_data, cube_mesh_handle) in query.iter() {
+        let cube_opt = meshes.get_mut(&cube_mesh_handle);
+        match cube_opt {
+            Some(cube) => {
+                *cube = Mesh::from(cube_data);
+                debug!("updated cube mesh")
+            }
+            None => {
+                debug!("no cube mesh")
+            }
+        }
+    }
+}
+
+impl From<&SquareCube> for Mesh {
+    fn from(plane: &SquareCube) -> Self {
         let faces: Vec<Vec3> = vec![
             [0.0, 0.0, 1.0].into(),  // OUT
             [0.0, 0.0, -1.0].into(), // IN
