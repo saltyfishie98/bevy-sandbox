@@ -1,7 +1,5 @@
 use std::f32::consts::PI;
-
 use bevy::{input::mouse::MouseMotion, prelude::*};
-
 use crate::ASPECT_RATIO;
 
 /// Tags an entity as capable of panning and orbiting.

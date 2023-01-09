@@ -1,3 +1,4 @@
+mod common;
 mod material;
 mod orbit_cam;
 mod primitives;
@@ -6,11 +7,8 @@ use bevy::{
     log::LogPlugin,
     pbr::wireframe::{Wireframe, WireframePlugin},
     prelude::*,
-    render::{
-        settings::{PowerPreference, WgpuFeatures, WgpuSettings},
-        RenderPlugin,
-    },
 };
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use material::MyMaterial;
 use orbit_cam::OrbitCamera;
 
@@ -23,6 +21,7 @@ fn main() {
 
     application
         .register_type::<primitives::SegmentedPlane>()
+        .register_type::<MyMaterial>()
         .insert_resource(ClearColor(CLEAR))
         .add_plugins(
             DefaultPlugins
@@ -40,15 +39,9 @@ fn main() {
                         ..Default::default()
                     },
                     ..Default::default()
-                })
-                .set(RenderPlugin {
-                    wgpu_settings: WgpuSettings {
-                        power_preference: PowerPreference::HighPerformance,
-                        features: WgpuFeatures::POLYGON_MODE_LINE,
-                        ..Default::default()
-                    },
                 }),
         )
+        .add_plugin(WorldInspectorPlugin)
         .add_plugin(WireframePlugin)
         .add_plugin(MaterialPlugin::<MyMaterial>::default())
         .add_plugin(OrbitCamera::default())
