@@ -1,3 +1,3 @@
 mod segmented_plane;
 
-pub use segmented_plane::SegmentedPlane;
+pub use segmented_plane::CubeFace;

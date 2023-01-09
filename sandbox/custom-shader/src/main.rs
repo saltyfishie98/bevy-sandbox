@@ -20,7 +20,6 @@ fn main() {
     let mut application = App::new();
 
     application
-        .register_type::<primitives::SegmentedPlane>()
         .register_type::<MyMaterial>()
         .insert_resource(ClearColor(CLEAR))
         .add_plugins(
@@ -59,7 +58,7 @@ fn setup(
         .spawn(MaterialMeshBundle {
             mesh: mesh_assets
                 // .add(Mesh::from(shape::Quad::default()))
-                .add(Mesh::from(primitives::SegmentedPlane::default()))
+                .add(Mesh::from(primitives::CubeFace::default()))
                 .into(),
             material: custom_material_assets.add(MyMaterial {
                 color: Color::ORANGE,
@@ -69,6 +68,14 @@ fn setup(
         })
         .insert(Movable)
         .insert(Wireframe);
+
+    commands.spawn(MaterialMeshBundle {
+        mesh: mesh_assets
+            .add(Mesh::from(shape::Cube { size: 0.25 }))
+            .into(),
+        material: custom_material_assets.add(MyMaterial::default()),
+        ..Default::default()
+    });
 }
 
 #[derive(Component)]
@@ -98,3 +105,7 @@ fn move_components(
         transform.translation += time.delta_seconds() * direction;
     }
 }
+
+#[derive(Component, Reflect, Default)]
+#[reflect(Component)]
+struct Resizable {}

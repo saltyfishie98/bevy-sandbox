@@ -22,6 +22,6 @@ impl Material for MyMaterial {
     }
 
     fn alpha_mode(&self) -> AlphaMode {
-        AlphaMode::Blend
+        AlphaMode::Opaque
     }
 }
