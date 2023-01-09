@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
-use bevy::{input::mouse::MouseMotion, prelude::*};
 use crate::ASPECT_RATIO;
+use bevy::{input::mouse::MouseMotion, prelude::*};
+use std::f32::consts::PI;
 
 /// Tags an entity as capable of panning and orbiting.
 #[derive(Component)]
@@ -91,7 +91,7 @@ fn pan_orbit_camera(
 
 /// Spawn a camera like this
 fn spawn_camera(mut commands: Commands) {
-    let translation = Vec3::new(0.0, 0.0, 5.0);
+    let translation = Vec3::new(0.0, 0.0, 7.0);
     let radius = translation.length();
 
     commands.spawn((

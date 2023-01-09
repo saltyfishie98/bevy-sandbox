@@ -51,31 +51,50 @@ fn main() {
 
 fn setup(
     mut commands: Commands,
-    mut mesh_assets: ResMut<Assets<Mesh>>,
-    mut custom_material_assets: ResMut<Assets<MyMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
     commands
         .spawn(MaterialMeshBundle {
-            mesh: mesh_assets
+            mesh: meshes
                 // .add(Mesh::from(shape::Quad::default()))
-                .add(Mesh::from(primitives::CubeFace::default()))
+                .add(Mesh::from(primitives::SquareCube::default()))
                 .into(),
-            material: custom_material_assets.add(MyMaterial {
-                color: Color::ORANGE,
-            }),
+            material: materials.add(Color::ORANGE.into()),
+            transform: Transform::from_xyz(-1.0, 0.0, 0.0),
+            ..Default::default()
+        })
+        // .insert(Wireframe)
+        .insert(Movable)
+        .insert(Name::new("CubeSphere"));
+
+    commands
+        .spawn(PointLightBundle {
+            point_light: PointLight {
+                intensity: 1500.0,
+                shadows_enabled: true,
+                ..default()
+            },
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            ..default()
+        })
+        .insert(Movable)
+        .insert(Name::new("Light"));
+
+    commands
+        .spawn(MaterialMeshBundle {
+            mesh: meshes
+                .add(Mesh::from(shape::UVSphere {
+                    radius: 0.5,
+                    ..Default::default()
+                }))
+                .into(),
+            material: materials.add(Color::ORANGE.into()),
+            transform: Transform::from_xyz(1.0, 0.0, 0.0),
             ..Default::default()
         })
         .insert(Movable)
-        .insert(Wireframe);
-
-    commands.spawn(MaterialMeshBundle {
-        mesh: mesh_assets
-            .add(Mesh::from(shape::Cube { size: 0.25 }))
-            .into(),
-        material: custom_material_assets.add(MyMaterial::default()),
-        ..Default::default()
-    });
+        .insert(Name::new("Sphere"));
 }
 
 #[derive(Component)]

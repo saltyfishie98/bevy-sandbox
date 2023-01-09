@@ -1,3 +1,3 @@
-mod segmented_plane;
+mod cube_square;
 
-pub use segmented_plane::CubeFace;
+pub use cube_square::SquareCube;
