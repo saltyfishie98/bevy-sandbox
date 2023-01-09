@@ -102,7 +102,7 @@ fn create_face_vertices(
 
             (
                 position.to_array(),
-                face_direction.to_array(),
+                position.to_array(),
                 [
                     magnitude_x as f32 / face.resolution as f32,
                     magnitude_y as f32 / face.resolution as f32,

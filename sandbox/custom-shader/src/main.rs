@@ -3,11 +3,7 @@ mod material;
 mod primitives;
 mod utils;
 
-use bevy::{
-    log::LogPlugin,
-    pbr::wireframe::{Wireframe, WireframePlugin},
-    prelude::*,
-};
+use bevy::{log::LogPlugin, pbr::wireframe::WireframePlugin, prelude::*};
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use material::MyMaterial;
 use utils::OrbitCamera;
@@ -73,12 +69,13 @@ fn setup(
             point_light: PointLight {
                 intensity: 1500.0,
                 shadows_enabled: true,
+                radius: 2.0,
                 ..default()
             },
             transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..default()
         })
-        .insert(Movable)
+        // .insert(Movable)
         .insert(Name::new("Light"));
 
     commands
