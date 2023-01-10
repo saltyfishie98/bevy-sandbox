@@ -94,21 +94,23 @@ fn spawn_camera(mut commands: Commands) {
     let translation = Vec3::new(0.0, 0.0, 7.0);
     let radius = translation.length();
 
-    commands.spawn((
-        Camera3dBundle {
-            projection: Projection::Perspective(PerspectiveProjection {
-                fov: PI / 8.0,
-                aspect_ratio: ASPECT_RATIO,
+    commands
+        .spawn((
+            Camera3dBundle {
+                projection: Projection::Perspective(PerspectiveProjection {
+                    fov: PI / 8.0,
+                    aspect_ratio: ASPECT_RATIO,
+                    ..Default::default()
+                }),
+                transform: Transform::from_translation(translation).looking_at(Vec3::ZERO, Vec3::Y),
                 ..Default::default()
-            }),
-            transform: Transform::from_translation(translation).looking_at(Vec3::ZERO, Vec3::Y),
-            ..Default::default()
-        },
-        OrbitCamera {
-            radius,
-            ..Default::default()
-        },
-    ));
+            },
+            OrbitCamera {
+                radius,
+                ..Default::default()
+            },
+        ))
+        .insert(Name::from("Player Orbit Camera"));
 }
 
 fn get_primary_window_size(windows: &Res<Windows>) -> Vec2 {
