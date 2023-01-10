@@ -8,7 +8,7 @@ use itertools::Itertools;
 #[derive(Component, Reflect)]
 pub struct CubeSphere;
 
-#[derive(Debug, Component, Reflect, InspectorOptions)]
+#[derive(Debug, Component, Reflect, InspectorOptions, PartialEq, Copy, Clone)]
 #[reflect(Component, InspectorOptions)]
 pub struct CubeSphereData {
     #[inspector(min = 1)]
@@ -79,110 +79,55 @@ impl From<&CubeSphereData> for Mesh {
 
 pub mod plugin {
     use super::*;
-    use bevy::{
-        ecs::query::{ReadOnlyWorldQuery, WorldQuery},
-        pbr::wireframe::{Wireframe, WireframePlugin},
-    };
-
-    fn find_cube_sphere_entity<Func: FnMut(<Q as WorldQuery>::Item<'_>), Q, F>(
-        query: Query<Q, F>,
-        mut callback: Func,
-    ) where
-        Q: WorldQuery + WorldQuery<ReadOnly = Q>,
-        F: ReadOnlyWorldQuery,
-    {
-        for entt in query.iter() {
-            callback(entt)
-        }
-    }
-
-    #[allow(dead_code)]
-    pub struct StaticCubeSphere;
-
-    impl Plugin for StaticCubeSphere {
-        fn build(&self, app: &mut App) {
-            app.register_type::<CubeSphere>();
-        }
-    }
-
-    #[allow(dead_code)]
-    pub struct DynamicCubeSphere;
-
-    impl Plugin for DynamicCubeSphere {
-        fn build(&self, app: &mut App) {
-            app.register_type::<CubeSphere>()
-                .register_type::<CubeSphereData>()
-                .add_startup_system_to_stage(StartupStage::PostStartup, insert_dynamic_components)
-                .add_system(update_square_cube);
-        }
-    }
-
-    fn insert_dynamic_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
-        // println!("{:?}", query);
-        find_cube_sphere_entity(query, |entt| {
-            if let Some(mut entity) = commands.get_entity(entt) {
-                entity.insert(CubeSphereData::default());
-            }
-        })
-    }
-
-    fn update_square_cube(
-        mut meshes: ResMut<Assets<Mesh>>,
-        query: Query<(&CubeSphereData, &Handle<Mesh>), With<Transform>>,
-    ) {
-        // println!("{:?}", query);
-        for (cube_data, cube_mesh_handle) in query.iter() {
-            let cube_opt = meshes.get_mut(&cube_mesh_handle);
-            match cube_opt {
-                Some(cube) => {
-                    *cube = Mesh::from(cube_data);
-                    // debug!("updated cube mesh")
-                }
-                None => {
-                    // debug!("no cube mesh")
-                }
-            }
-        }
-    }
+    use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 
     #[allow(dead_code)]
     pub struct DebugCubeSphere;
 
     impl Plugin for DebugCubeSphere {
         fn build(&self, app: &mut App) {
-            app.register_type::<CubeSphereDebugWireframe>()
+            app.register_type::<CubeSphere>()
+                .register_type::<CubeSphereData>()
+                .register_type::<CubeSphereDebugInfo>()
                 .add_plugin(WireframePlugin)
-                .add_plugin(DynamicCubeSphere)
                 .add_startup_system_to_stage(StartupStage::PostStartup, insert_debug_components)
-                .add_system(toggle_wireframe);
+                .add_system(toggle_wireframe)
+                .add_system(update_square_cube);
         }
     }
 
     #[derive(Component, Debug, Reflect, InspectorOptions)]
     #[reflect(Component, Default)]
-    struct CubeSphereDebugWireframe {
+    struct CubeSphereDebugInfo {
         show_wireframe: bool,
+        outdated: bool,
+
+        #[reflect(ignore)]
+        old_data: CubeSphereData,
     }
 
-    impl Default for CubeSphereDebugWireframe {
+    impl Default for CubeSphereDebugInfo {
         fn default() -> Self {
             Self {
                 show_wireframe: true,
+                outdated: true,
+                old_data: CubeSphereData::default(),
             }
         }
     }
 
     fn insert_debug_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
-        find_cube_sphere_entity(query, |entt| {
+        for entt in query.iter() {
             if let Some(mut entity) = commands.get_entity(entt) {
-                entity.insert(CubeSphereDebugWireframe::default());
+                entity.insert(CubeSphereData::default());
+                entity.insert(CubeSphereDebugInfo::default());
             };
-        })
+        }
     }
 
     fn toggle_wireframe(
         mut commands: Commands,
-        query: Query<(Entity, &CubeSphereDebugWireframe), With<CubeSphereData>>,
+        query: Query<(Entity, &mut CubeSphereDebugInfo), With<CubeSphere>>,
     ) {
         for (entt, debug_info) in query.iter() {
             if let Some(mut entity) = commands.get_entity(entt) {
@@ -192,6 +137,37 @@ pub mod plugin {
                     entity.remove::<Wireframe>();
                 }
             };
+        }
+    }
+
+    fn update_square_cube(
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut query: Query<
+            (&CubeSphereData, &mut CubeSphereDebugInfo, &Handle<Mesh>),
+            With<Transform>,
+        >,
+    ) {
+        // println!("{:?}", query);
+        for (sq_cube_data, mut debug_info, cube_mesh_handle) in query.iter_mut() {
+            if *sq_cube_data != debug_info.old_data {
+                debug_info.outdated = true;
+                debug_info.old_data = sq_cube_data.clone();
+            }
+
+            if !debug_info.outdated {
+                return;
+            }
+
+            let cube_opt = meshes.get_mut(&cube_mesh_handle);
+            match cube_opt {
+                Some(cube) => {
+                    *cube = Mesh::from(sq_cube_data);
+                    debug_info.outdated = false;
+                }
+                None => {
+                    // debug!("no cube mesh")
+                }
+            }
         }
     }
 }

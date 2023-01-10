@@ -1,3 +1,4 @@
-mod cube_square;
+mod cube_sphere;
 
-pub use cube_square::*;
+pub use cube_sphere::CubeSphere;
+pub use cube_sphere::*;

@@ -7,6 +7,7 @@ use std::f32::consts::PI;
 
 use bevy::{log::LogPlugin, prelude::*};
 use material::MyMaterial;
+use mesh_data::CubeSphere;
 use utils::OrbitCamera;
 
 #[cfg(debug_assertions)]
@@ -72,7 +73,7 @@ fn setup(
             transform: Transform::from_xyz(-1.0, 0.0, 0.0),
             ..Default::default()
         })
-        .insert(mesh_data::CubeSphere)
+        .insert(CubeSphere)
         .insert(Movable)
         .insert(Name::new("Planet"));
 
