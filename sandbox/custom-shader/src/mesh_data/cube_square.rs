@@ -189,6 +189,20 @@ fn create_face_vertices(
     face_direction: Vec3,
     vertex_template: VertexTemplate,
 ) -> VertexData {
+    fn convert_to_sphere_position(pos: Vec3) -> Vec3 {
+        let Vec3 { x, y, z } = pos;
+
+        let x2 = x * x;
+        let y2 = y * y;
+        let z2 = z * z;
+
+        Vec3 {
+            x: x * f32::sqrt(1.0 - (y2 + z2) / 2.0 + (y2 * z2) / 3.0),
+            y: y * f32::sqrt(1.0 - (z2 + x2) / 2.0 + (z2 * x2) / 3.0),
+            z: z * f32::sqrt(1.0 - (x2 + y2) / 2.0 + (x2 * y2) / 3.0),
+        }
+    }
+
     let x_unit_vector = Vec3::from([face_direction.z, face_direction.x, face_direction.y]);
     let y_unit_vector = face_direction.cross(x_unit_vector);
 
@@ -198,11 +212,11 @@ fn create_face_vertices(
             let percent =
                 Vec2::from([magnitude_x as f32, magnitude_y as f32]) / face.resolution as f32;
 
-            let position = (face_direction / 2.0
-                + x_unit_vector * (percent.x - 0.5)
-                + y_unit_vector * (percent.y - 0.5))
-                .normalize()
-                / 2.0;
+            let cube_positions = face_direction
+                + (percent.x - 0.5) * 2.0 * x_unit_vector
+                + (percent.y - 0.5) * 2.0 * y_unit_vector;
+
+            let sphere_positions = convert_to_sphere_position(cube_positions) / 2.0;
 
             // debug!("magnitude: {}", position.length());
 
@@ -213,8 +227,8 @@ fn create_face_vertices(
             // }
 
             (
-                position.to_array(),
-                position.to_array(),
+                sphere_positions.to_array(),
+                sphere_positions.to_array(),
                 [
                     magnitude_x as f32 / face.resolution as f32,
                     magnitude_y as f32 / face.resolution as f32,
