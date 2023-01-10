@@ -3,6 +3,8 @@ mod material;
 mod mesh_data;
 mod utils;
 
+use std::f32::consts::PI;
+
 use bevy::{log::LogPlugin, prelude::*};
 use material::MyMaterial;
 use utils::OrbitCamera;
@@ -75,15 +77,16 @@ fn setup(
         .insert(Name::new("Planet"));
 
     commands
-        .spawn(PointLightBundle {
-            point_light: PointLight {
-                intensity: 1500.0,
-                shadows_enabled: true,
-                radius: 2.0,
-                ..default()
+        .spawn(DirectionalLightBundle {
+            directional_light: DirectionalLight {
+                illuminance: 5000.0,
+                ..Default::default()
             },
-            transform: Transform::from_xyz(0.0, 0.0, 0.0),
-            ..default()
+            transform: Transform {
+                rotation: Quat::from_axis_angle([1.0, 0.0, 0.0].into(), -PI / 2.0),
+                ..Default::default()
+            },
+            ..Default::default()
         })
         .insert(Movable)
         .insert(Name::new("Light"));
