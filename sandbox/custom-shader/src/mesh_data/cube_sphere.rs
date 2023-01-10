@@ -13,11 +13,16 @@ pub struct CubeSphere;
 pub struct CubeSphereData {
     #[inspector(min = 1)]
     pub resolution: u32,
+    #[inspector(min = 0.0)]
+    pub radius: f32,
 }
 
 impl Default for CubeSphereData {
     fn default() -> Self {
-        Self { resolution: 10 }
+        Self {
+            resolution: 10,
+            radius: 0.5,
+        }
     }
 }
 
@@ -34,10 +39,9 @@ impl From<&CubeSphereData> for Mesh {
 
         let mut vertices_vec: VertexData = [].into();
         let mut indices_vec: Vec<u32> = [].into();
+        let mut index_offset = 0;
 
         let vertex_template = (0..=plane.resolution).cartesian_product(0..=plane.resolution);
-
-        let mut index_offset = 0;
 
         for face_direction in faces {
             let mut face_vertices =
@@ -75,7 +79,22 @@ impl From<&CubeSphereData> for Mesh {
 
 pub mod plugin {
     use super::*;
-    use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
+    use bevy::{
+        ecs::query::{ReadOnlyWorldQuery, WorldQuery},
+        pbr::wireframe::{Wireframe, WireframePlugin},
+    };
+
+    fn find_cube_sphere_entity<Func: FnMut(<Q as WorldQuery>::Item<'_>), Q, F>(
+        query: Query<Q, F>,
+        mut callback: Func,
+    ) where
+        Q: WorldQuery + WorldQuery<ReadOnly = Q>,
+        F: ReadOnlyWorldQuery,
+    {
+        for entt in query.iter() {
+            callback(entt)
+        }
+    }
 
     #[allow(dead_code)]
     pub struct StaticCubeSphere;
@@ -100,12 +119,11 @@ pub mod plugin {
 
     fn insert_dynamic_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
         // println!("{:?}", query);
-
-        for entt in query.iter() {
+        find_cube_sphere_entity(query, |entt| {
             if let Some(mut entity) = commands.get_entity(entt) {
                 entity.insert(CubeSphereData::default());
             }
-        }
+        })
     }
 
     fn update_square_cube(
@@ -155,11 +173,11 @@ pub mod plugin {
     }
 
     fn insert_debug_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
-        for entt in query.iter() {
+        find_cube_sphere_entity(query, |entt| {
             if let Some(mut entity) = commands.get_entity(entt) {
                 entity.insert(CubeSphereDebugWireframe::default());
             };
-        }
+        })
     }
 
     fn toggle_wireframe(
@@ -185,7 +203,7 @@ type VertexTemplate =
     itertools::Product<std::ops::RangeInclusive<u32>, std::ops::RangeInclusive<u32>>;
 
 fn create_face_vertices(
-    face: &CubeSphereData,
+    cube_sphere: &CubeSphereData,
     face_direction: Vec3,
     vertex_template: VertexTemplate,
 ) -> VertexData {
@@ -209,14 +227,14 @@ fn create_face_vertices(
     let out = vertex_template
         .clone()
         .map(|(magnitude_x, magnitude_y)| {
-            let percent =
-                Vec2::from([magnitude_x as f32, magnitude_y as f32]) / face.resolution as f32;
+            let percent = Vec2::from([magnitude_x as f32, magnitude_y as f32])
+                / cube_sphere.resolution as f32;
 
             let cube_positions = face_direction
                 + (percent.x - 0.5) * 2.0 * x_unit_vector
                 + (percent.y - 0.5) * 2.0 * y_unit_vector;
 
-            let sphere_positions = convert_to_sphere_position(cube_positions) / 2.0;
+            let sphere_positions = convert_to_sphere_position(cube_positions) * cube_sphere.radius;
 
             // debug!("magnitude: {}", position.length());
 
@@ -230,8 +248,8 @@ fn create_face_vertices(
                 sphere_positions.to_array(),
                 sphere_positions.to_array(),
                 [
-                    magnitude_x as f32 / face.resolution as f32,
-                    magnitude_y as f32 / face.resolution as f32,
+                    magnitude_x as f32 / cube_sphere.resolution as f32,
+                    magnitude_y as f32 / cube_sphere.resolution as f32,
                 ],
             )
         })
