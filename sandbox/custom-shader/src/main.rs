@@ -4,9 +4,11 @@ mod mesh_data;
 mod utils;
 
 use bevy::{log::LogPlugin, prelude::*};
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use material::MyMaterial;
 use utils::OrbitCamera;
+
+#[cfg(debug_assertions)]
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 
 const CLEAR: Color = Color::GRAY;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
@@ -39,9 +41,6 @@ fn main() {
                     ..Default::default()
                 }),
         )
-        // Debug
-        .add_plugin(WorldInspectorPlugin)
-        .add_plugin(mesh_data::plugin::DebugCubeSphere)
         //
         // Plugins
         .add_plugin(MaterialPlugin::<MyMaterial>::default())
@@ -49,8 +48,14 @@ fn main() {
         //
         // Systems
         .add_startup_system(setup)
-        .add_system(move_components)
-        .run();
+        .add_system(move_components);
+
+    #[cfg(debug_assertions)]
+    application
+        .add_plugin(WorldInspectorPlugin)
+        .add_plugin(mesh_data::plugin::DebugCubeSphere);
+
+    application.run();
 }
 
 fn setup(
