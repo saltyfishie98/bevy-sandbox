@@ -62,15 +62,11 @@ fn main() {
     application.run();
 }
 
-fn setup(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
-) {
+fn setup(mut commands: Commands, mut materials: ResMut<Assets<StandardMaterial>>) {
     commands
         .spawn(MaterialMeshBundle {
             material: materials.add(Color::ORANGE.into()),
-            transform: Transform::from_xyz(-1.0, 0.0, 0.0),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
             ..Default::default()
         })
         .insert(mesh_data::CubeSphere::default())
@@ -91,21 +87,6 @@ fn setup(
         })
         .insert(Movable)
         .insert(Name::new("Light"));
-
-    commands
-        .spawn(MaterialMeshBundle {
-            mesh: meshes
-                .add(Mesh::from(shape::UVSphere {
-                    radius: 0.5,
-                    ..Default::default()
-                }))
-                .into(),
-            material: materials.add(Color::ORANGE.into()),
-            transform: Transform::from_xyz(1.0, 0.0, 0.0),
-            ..Default::default()
-        })
-        .insert(Movable)
-        .insert(Name::new("Sphere"));
 }
 
 //// Misc Plugins //////////////////////////////////////////////////////////////////////////////////

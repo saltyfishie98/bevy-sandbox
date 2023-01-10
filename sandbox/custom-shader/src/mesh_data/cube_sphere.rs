@@ -97,12 +97,8 @@ pub mod plugin {
     ) {
         debug!("Init CubeSphere");
         for (cube_sphere, mesh_handle) in query.iter() {
-            let mesh_opt = meshes.get_mut(mesh_handle);
-            match mesh_opt {
-                Some(cube) => {
-                    *cube = Mesh::from(cube_sphere);
-                }
-                None => {}
+            if let Some(cube) = meshes.get_mut(mesh_handle) {
+                *cube = Mesh::from(cube_sphere);
             }
         }
     }
@@ -121,10 +117,15 @@ pub mod plugin {
     }
 
     #[derive(Component, Debug, Reflect, InspectorOptions)]
-    #[reflect(Component, Default)]
+    #[reflect(Component, Default, InspectorOptions)]
     struct CubeSphereDebugInfo {
         show_wireframe: bool,
         outdated: bool,
+
+        #[inspector(suffix = " read-only")]
+        num_vertices: usize,
+        #[inspector(suffix = " read-only")]
+        num_indices: usize,
 
         #[reflect(ignore)]
         old_data: super::CubeSphere,
@@ -136,6 +137,8 @@ pub mod plugin {
                 show_wireframe: true,
                 outdated: true,
                 old_data: super::CubeSphere::default(),
+                num_vertices: 0,
+                num_indices: 0,
             }
         }
     }
@@ -185,15 +188,22 @@ pub mod plugin {
                 return;
             }
 
-            let cube_opt = meshes.get_mut(&cube_mesh_handle);
-            match cube_opt {
-                Some(cube) => {
-                    *cube = Mesh::from(cube_sphere_data);
-                    debug_info.outdated = false;
+            if let Some(cube_mesh) = meshes.get_mut(&cube_mesh_handle) {
+                *cube_mesh = Mesh::from(cube_sphere_data);
+
+                debug_info.outdated = false;
+
+                match cube_mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+                    Some(val) => debug_info.num_vertices = val.len(),
+                    None => debug_info.num_vertices = 0,
                 }
-                None => {
-                    *cube_mesh_handle = meshes.add(Mesh::from(cube_sphere_data));
+
+                match cube_mesh.indices() {
+                    Some(indices) => debug_info.num_indices = indices.len(),
+                    None => debug_info.num_indices = 0,
                 }
+            } else {
+                *cube_mesh_handle = meshes.add(Mesh::from(cube_sphere_data));
             }
         }
     }
