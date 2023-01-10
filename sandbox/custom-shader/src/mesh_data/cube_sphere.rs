@@ -5,19 +5,19 @@ use bevy::{
 use bevy_inspector_egui::prelude::*;
 use itertools::Itertools;
 
-#[derive(Component, Reflect)]
-pub struct CubeSphere;
+// #[derive(Component, Reflect)]
+// pub struct CubeSphere;
 
 #[derive(Debug, Component, Reflect, InspectorOptions, PartialEq, Copy, Clone)]
 #[reflect(Component, InspectorOptions)]
-pub struct CubeSphereData {
+pub struct CubeSphere {
     #[inspector(min = 1)]
     pub resolution: u32,
     #[inspector(min = 0.0)]
     pub radius: f32,
 }
 
-impl Default for CubeSphereData {
+impl Default for CubeSphere {
     fn default() -> Self {
         Self {
             resolution: 10,
@@ -26,8 +26,8 @@ impl Default for CubeSphereData {
     }
 }
 
-impl From<&CubeSphereData> for Mesh {
-    fn from(plane: &CubeSphereData) -> Self {
+impl From<&CubeSphere> for Mesh {
+    fn from(plane: &CubeSphere) -> Self {
         let faces: Vec<Vec3> = vec![
             [0.0, 0.0, 1.0].into(),  // OUT
             [0.0, 0.0, -1.0].into(), // IN
@@ -82,13 +82,37 @@ pub mod plugin {
     use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
 
     #[allow(dead_code)]
+    pub struct CubeSphere;
+
+    impl Plugin for CubeSphere {
+        fn build(&self, app: &mut App) {
+            app.register_type::<super::CubeSphere>()
+                .add_startup_system_to_stage(StartupStage::PostStartup, init_cube_sphere);
+        }
+    }
+
+    fn init_cube_sphere(
+        mut meshes: ResMut<Assets<Mesh>>,
+        query: Query<(&super::CubeSphere, &Handle<Mesh>)>,
+    ) {
+        debug!("Init CubeSphere");
+        for (cube_sphere, mesh_handle) in query.iter() {
+            let mesh_opt = meshes.get_mut(mesh_handle);
+            match mesh_opt {
+                Some(cube) => {
+                    *cube = Mesh::from(cube_sphere);
+                }
+                None => {}
+            }
+        }
+    }
+
+    #[allow(dead_code)]
     pub struct DebugCubeSphere;
 
     impl Plugin for DebugCubeSphere {
         fn build(&self, app: &mut App) {
-            app.register_type::<CubeSphere>()
-                .register_type::<CubeSphereData>()
-                .register_type::<CubeSphereDebugInfo>()
+            app.register_type::<CubeSphereDebugInfo>()
                 .add_plugin(WireframePlugin)
                 .add_startup_system_to_stage(StartupStage::PostStartup, insert_debug_components)
                 .add_system(toggle_wireframe)
@@ -103,7 +127,7 @@ pub mod plugin {
         outdated: bool,
 
         #[reflect(ignore)]
-        old_data: CubeSphereData,
+        old_data: super::CubeSphere,
     }
 
     impl Default for CubeSphereDebugInfo {
@@ -111,24 +135,26 @@ pub mod plugin {
             Self {
                 show_wireframe: true,
                 outdated: true,
-                old_data: CubeSphereData::default(),
+                old_data: super::CubeSphere::default(),
             }
         }
     }
 
-    fn insert_debug_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
+    fn insert_debug_components(
+        mut commands: Commands,
+        query: Query<Entity, With<super::CubeSphere>>,
+    ) {
+        // println!("{:?}", query);
+        info!("Enabled CubeSphere debugging!");
         for entt in query.iter() {
             if let Some(mut entity) = commands.get_entity(entt) {
-                entity.insert(CubeSphereData::default());
                 entity.insert(CubeSphereDebugInfo::default());
             };
         }
     }
 
-    fn toggle_wireframe(
-        mut commands: Commands,
-        query: Query<(Entity, &mut CubeSphereDebugInfo), With<CubeSphere>>,
-    ) {
+    fn toggle_wireframe(mut commands: Commands, query: Query<(Entity, &mut CubeSphereDebugInfo)>) {
+        // println!("{:?}", query);
         for (entt, debug_info) in query.iter() {
             if let Some(mut entity) = commands.get_entity(entt) {
                 if debug_info.show_wireframe {
@@ -142,16 +168,17 @@ pub mod plugin {
 
     fn update_square_cube(
         mut meshes: ResMut<Assets<Mesh>>,
-        mut query: Query<
-            (&CubeSphereData, &mut CubeSphereDebugInfo, &Handle<Mesh>),
-            With<Transform>,
-        >,
+        mut query: Query<(
+            &super::CubeSphere,
+            &mut CubeSphereDebugInfo,
+            &mut Handle<Mesh>,
+        )>,
     ) {
         // println!("{:?}", query);
-        for (sq_cube_data, mut debug_info, cube_mesh_handle) in query.iter_mut() {
-            if *sq_cube_data != debug_info.old_data {
+        for (cube_sphere_data, mut debug_info, mut cube_mesh_handle) in query.iter_mut() {
+            if *cube_sphere_data != debug_info.old_data {
                 debug_info.outdated = true;
-                debug_info.old_data = sq_cube_data.clone();
+                debug_info.old_data = cube_sphere_data.clone();
             }
 
             if !debug_info.outdated {
@@ -161,11 +188,11 @@ pub mod plugin {
             let cube_opt = meshes.get_mut(&cube_mesh_handle);
             match cube_opt {
                 Some(cube) => {
-                    *cube = Mesh::from(sq_cube_data);
+                    *cube = Mesh::from(cube_sphere_data);
                     debug_info.outdated = false;
                 }
                 None => {
-                    // debug!("no cube mesh")
+                    *cube_mesh_handle = meshes.add(Mesh::from(cube_sphere_data));
                 }
             }
         }
@@ -179,7 +206,7 @@ type VertexTemplate =
     itertools::Product<std::ops::RangeInclusive<u32>, std::ops::RangeInclusive<u32>>;
 
 fn create_face_vertices(
-    cube_sphere: &CubeSphereData,
+    cube_sphere: &CubeSphere,
     face_direction: Vec3,
     vertex_template: VertexTemplate,
 ) -> VertexData {
@@ -240,7 +267,7 @@ fn create_face_vertices(
 }
 
 fn create_face_indices(
-    face: &CubeSphereData,
+    face: &CubeSphere,
     index_offset: u32,
     vertex_template: VertexTemplate,
 ) -> Vec<u32> {

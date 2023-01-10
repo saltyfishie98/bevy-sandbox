@@ -7,7 +7,7 @@ use std::f32::consts::PI;
 
 use bevy::{log::LogPlugin, prelude::*};
 use material::MyMaterial;
-use mesh_data::CubeSphere;
+use mesh_data::plugin;
 use utils::OrbitCamera;
 
 #[cfg(debug_assertions)]
@@ -48,6 +48,7 @@ fn main() {
         // Plugins
         .add_plugin(MaterialPlugin::<MyMaterial>::default())
         .add_plugin(OrbitCamera::default())
+        .add_plugin(plugin::CubeSphere)
         //
         // Systems
         .add_startup_system(setup)
@@ -56,7 +57,7 @@ fn main() {
     #[cfg(debug_assertions)]
     application
         .add_plugin(WorldInspectorPlugin)
-        .add_plugin(mesh_data::plugin::DebugCubeSphere);
+        .add_plugin(plugin::DebugCubeSphere);
 
     application.run();
 }
@@ -68,12 +69,11 @@ fn setup(
 ) {
     commands
         .spawn(MaterialMeshBundle {
-            mesh: meshes.add(Mesh::from(&mesh_data::CubeSphereData::default())),
             material: materials.add(Color::ORANGE.into()),
             transform: Transform::from_xyz(-1.0, 0.0, 0.0),
             ..Default::default()
         })
-        .insert(CubeSphere)
+        .insert(mesh_data::CubeSphere::default())
         .insert(Movable)
         .insert(Name::new("Planet"));
 
