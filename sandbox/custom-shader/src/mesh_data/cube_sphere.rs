@@ -237,8 +237,18 @@ fn create_face_vertices(
         }
     }
 
-    let x_unit_vector = Vec3::from([face_direction.z, face_direction.x, face_direction.y]);
-    let y_unit_vector = face_direction.cross(x_unit_vector);
+    let x_unit_vector: Vec3;
+    let y_unit_vector: Vec3;
+
+    let z_unit_vector = face_direction.normalize();
+    if z_unit_vector == Vec3::from([0.0, 0.0, 1.0]) || z_unit_vector == Vec3::from([0.0, 0.0, -1.0])
+    {
+        x_unit_vector = Vec3::from([0.0, 1.0, 0.0]).cross(z_unit_vector);
+        y_unit_vector = z_unit_vector.cross(x_unit_vector);
+    } else {
+        x_unit_vector = Vec3::from([0.0, 0.0, 1.0]).cross(z_unit_vector);
+        y_unit_vector = z_unit_vector.cross(x_unit_vector);
+    }
 
     let out = vertex_template
         .clone()
@@ -246,7 +256,7 @@ fn create_face_vertices(
             let percent = Vec2::from([magnitude_x as f32, magnitude_y as f32])
                 / cube_sphere.resolution as f32;
 
-            let cube_positions = face_direction
+            let cube_positions = z_unit_vector
                 + (percent.x - 0.5) * 2.0 * x_unit_vector
                 + (percent.y - 0.5) * 2.0 * y_unit_vector;
 
