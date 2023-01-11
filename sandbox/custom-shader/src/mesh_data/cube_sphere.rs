@@ -221,6 +221,8 @@ fn create_face_vertices(
     face_direction: Vec3,
     vertex_template: VertexTemplate,
 ) -> VertexData {
+    let _ = info_span!("create_face_vertex", name = "create_face_vertex").entered();
+
     fn convert_to_sphere_position(pos: Vec3) -> Vec3 {
         let Vec3 { x, y, z } = pos;
 
