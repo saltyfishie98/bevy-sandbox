@@ -5,76 +5,6 @@ use bevy::{
 use bevy_inspector_egui::prelude::*;
 use itertools::Itertools;
 
-// #[derive(Component, Reflect)]
-// pub struct CubeSphere;
-
-#[derive(Debug, Component, Reflect, InspectorOptions, PartialEq, Copy, Clone)]
-#[reflect(Component, InspectorOptions)]
-pub struct CubeSphere {
-    #[inspector(min = 1)]
-    pub resolution: u32,
-    #[inspector(min = 0.0)]
-    pub radius: f32,
-}
-
-impl Default for CubeSphere {
-    fn default() -> Self {
-        Self {
-            resolution: 10,
-            radius: 0.5,
-        }
-    }
-}
-
-impl From<&CubeSphere> for Mesh {
-    fn from(plane: &CubeSphere) -> Self {
-        let faces: Vec<Vec3> = vec![
-            [0.0, 0.0, 1.0].into(),  // OUT
-            [0.0, 0.0, -1.0].into(), // IN
-            [0.0, 1.0, 0.0].into(),  // UP
-            [0.0, -1.0, 0.0].into(), // DOWN
-            [1.0, 0.0, 0.0].into(),  // RIGHT
-            [-1.0, 0.0, 0.0].into(), // LEFT
-        ];
-
-        let mut vertices_vec: VertexData = [].into();
-        let mut indices_vec: Vec<u32> = [].into();
-        let mut index_offset = 0;
-
-        let vertex_template = (0..=plane.resolution).cartesian_product(0..=plane.resolution);
-
-        for face_direction in faces {
-            let mut face_vertices =
-                create_face_vertices(&plane, face_direction, vertex_template.clone());
-
-            let mut face_indices =
-                create_face_indices(&plane, index_offset, vertex_template.clone());
-
-            index_offset = face_indices.iter().max().unwrap().clone() + 1;
-
-            vertices_vec.append(&mut face_vertices);
-            indices_vec.append(&mut face_indices);
-        }
-
-        // debug!("vertices count: {}", vertices_vec.len());
-        // debug!("indices count: {}", indices_vec.len());
-
-        // format and set mesh attributes
-        let positions: Vec<_> = vertices_vec.iter().map(|(p, _, _)| *p).collect();
-        let normals: Vec<_> = vertices_vec.iter().map(|(_, n, _)| *n).collect();
-        let uvs: Vec<_> = vertices_vec.iter().map(|(_, _, uv)| *uv).collect();
-
-        let indices = Indices::U32(indices_vec);
-
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-        mesh.set_indices(Some(indices));
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-        mesh
-    }
-}
-
 //// Plugins ///////////////////////////////////////////////////////////////////////////////////////
 
 pub mod plugin {
@@ -93,12 +23,16 @@ pub mod plugin {
 
     fn init_cube_sphere(
         mut meshes: ResMut<Assets<Mesh>>,
-        query: Query<(&super::CubeSphere, &Handle<Mesh>)>,
+        mut query: Query<(&super::CubeSphere, &mut Handle<Mesh>)>,
     ) {
-        debug!("Init CubeSphere");
-        for (cube_sphere, mesh_handle) in query.iter() {
-            if let Some(cube) = meshes.get_mut(mesh_handle) {
+        // println!("{:?}", query);
+        for (cube_sphere, mut mesh_handle) in query.iter_mut() {
+            if let Some(cube) = meshes.get_mut(&mesh_handle) {
+                debug!("Init CubeSphere");
                 *cube = Mesh::from(cube_sphere);
+            } else {
+                debug!("Spawn CubeSphere");
+                *mesh_handle = meshes.add(Mesh::from(cube_sphere));
             }
         }
     }
@@ -178,7 +112,7 @@ pub mod plugin {
         )>,
     ) {
         // println!("{:?}", query);
-        for (cube_sphere_data, mut debug_info, mut cube_mesh_handle) in query.iter_mut() {
+        for (cube_sphere_data, mut debug_info, cube_mesh_handle) in query.iter_mut() {
             if *cube_sphere_data != debug_info.old_data {
                 debug_info.outdated = true;
                 debug_info.old_data = cube_sphere_data.clone();
@@ -202,10 +136,77 @@ pub mod plugin {
                     Some(indices) => debug_info.num_indices = indices.len(),
                     None => debug_info.num_indices = 0,
                 }
-            } else {
-                *cube_mesh_handle = meshes.add(Mesh::from(cube_sphere_data));
             }
         }
+    }
+}
+
+//// Components ////////////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Component, Reflect, InspectorOptions, PartialEq, Copy, Clone)]
+#[reflect(Component, InspectorOptions)]
+pub struct CubeSphere {
+    #[inspector(min = 1)]
+    pub resolution: u32,
+    #[inspector(min = 0.0)]
+    pub radius: f32,
+}
+
+impl Default for CubeSphere {
+    fn default() -> Self {
+        Self {
+            resolution: 10,
+            radius: 0.5,
+        }
+    }
+}
+
+impl From<&CubeSphere> for Mesh {
+    fn from(plane: &CubeSphere) -> Self {
+        let faces: Vec<Vec3> = vec![
+            [0.0, 0.0, 1.0].into(),  // OUT
+            [0.0, 0.0, -1.0].into(), // IN
+            [0.0, 1.0, 0.0].into(),  // UP
+            [0.0, -1.0, 0.0].into(), // DOWN
+            [1.0, 0.0, 0.0].into(),  // RIGHT
+            [-1.0, 0.0, 0.0].into(), // LEFT
+        ];
+
+        let mut vertices_vec: VertexData = [].into();
+        let mut indices_vec: Vec<u32> = [].into();
+        let mut index_offset = 0;
+
+        let vertex_template = (0..=plane.resolution).cartesian_product(0..=plane.resolution);
+
+        for face_direction in faces {
+            let mut face_vertices =
+                create_face_vertices(&plane, face_direction, vertex_template.clone());
+
+            let mut face_indices =
+                create_face_indices(&plane, index_offset, vertex_template.clone());
+
+            index_offset = face_indices.iter().max().unwrap().clone() + 1;
+
+            vertices_vec.append(&mut face_vertices);
+            indices_vec.append(&mut face_indices);
+        }
+
+        // debug!("vertices count: {}", vertices_vec.len());
+        // debug!("indices count: {}", indices_vec.len());
+
+        // format and set mesh attributes
+        let positions: Vec<_> = vertices_vec.iter().map(|(p, _, _)| *p).collect();
+        let normals: Vec<_> = vertices_vec.iter().map(|(_, n, _)| *n).collect();
+        let uvs: Vec<_> = vertices_vec.iter().map(|(_, _, uv)| *uv).collect();
+
+        let indices = Indices::U32(indices_vec);
+
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+        mesh.set_indices(Some(indices));
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+        mesh
     }
 }
 
