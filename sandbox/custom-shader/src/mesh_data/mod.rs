@@ -4,6 +4,9 @@ pub use cube_sphere::*;
 mod mesh_noise;
 pub use mesh_noise::*;
 
+mod inspect;
+pub use inspect::*;
+
 pub trait ProceduralShape {
     fn generate_data(&self) -> (VerticesData, IndicesData);
 }

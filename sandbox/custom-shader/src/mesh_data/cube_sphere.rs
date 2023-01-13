@@ -1,4 +1,5 @@
-use bevy::pbr::wireframe::{Wireframe, WireframePlugin};
+use super::{IndicesData, InspectableMesh, InspectorInfo, ProceduralShape, VerticesData};
+use crate::mesh_data::VertexData;
 use bevy::{
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
@@ -6,9 +7,8 @@ use bevy::{
 use bevy_inspector_egui::prelude::*;
 use itertools::Itertools;
 
-use crate::mesh_data::VertexData;
-
-use super::{IndicesData, ProceduralShape, VerticesData};
+type VertexTemplate =
+    itertools::Product<std::ops::RangeInclusive<u32>, std::ops::RangeInclusive<u32>>;
 
 //// Components ////////////////////////////////////////////////////////////////////////////////////
 
@@ -21,8 +21,28 @@ pub struct CubeSphere {
     pub radius: f32,
 }
 
-type VertexTemplate =
-    itertools::Product<std::ops::RangeInclusive<u32>, std::ops::RangeInclusive<u32>>;
+impl From<&CubeSphere> for Mesh {
+    fn from(cube_sphere: &CubeSphere) -> Self {
+        let (vertices_vec, indices_vec) = cube_sphere.generate_data();
+
+        // debug!("vertices count: {}", vertices_vec.len());
+        // debug!("indices count: {}", indices_vec.len());
+
+        // format and set mesh attributes
+        let positions: Vec<_> = vertices_vec.iter().map(|vert| vert.position).collect();
+        let normals: Vec<_> = vertices_vec.iter().map(|vert| vert.normal).collect();
+        let uvs: Vec<_> = vertices_vec.iter().map(|vert| vert.uv).collect();
+
+        let indices = Indices::U32(indices_vec);
+
+        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
+        mesh.set_indices(Some(indices));
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+        mesh
+    }
+}
 
 impl ProceduralShape for CubeSphere {
     fn generate_data(&self) -> (VerticesData, IndicesData) {
@@ -57,35 +77,51 @@ impl ProceduralShape for CubeSphere {
     }
 }
 
+impl InspectableMesh<CubeSphere> for CubeSphere {
+    fn update_info(
+        mut meshes: ResMut<Assets<Mesh>>,
+        mut query: Query<(
+            &CubeSphere,
+            &mut InspectorInfo<CubeSphere>,
+            &mut Handle<Mesh>,
+        )>,
+    ) {
+        // println!("{:?}", query);
+        for (cube_sphere_data, mut debug_info, cube_mesh_handle) in query.iter_mut() {
+            if *cube_sphere_data != debug_info.old_data {
+                debug_info.outdated = true;
+                debug_info.old_data = cube_sphere_data.clone();
+            }
+
+            if !debug_info.outdated {
+                return;
+            }
+
+            if let Some(cube_mesh) = meshes.get_mut(&cube_mesh_handle) {
+                *cube_mesh = Mesh::from(cube_sphere_data);
+
+                debug_info.outdated = false;
+
+                match cube_mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
+                    Some(val) => debug_info.num_vertices = val.len(),
+                    None => debug_info.num_vertices = 0,
+                }
+
+                match cube_mesh.indices() {
+                    Some(indices) => debug_info.num_indices = indices.len(),
+                    None => debug_info.num_indices = 0,
+                }
+            }
+        }
+    }
+}
+
 impl Default for CubeSphere {
     fn default() -> Self {
         Self {
             resolution: 10,
             radius: 0.5,
         }
-    }
-}
-
-impl From<&CubeSphere> for Mesh {
-    fn from(cube_sphere: &CubeSphere) -> Self {
-        let (vertices_vec, indices_vec) = cube_sphere.generate_data();
-
-        // debug!("vertices count: {}", vertices_vec.len());
-        // debug!("indices count: {}", indices_vec.len());
-
-        // format and set mesh attributes
-        let positions: Vec<_> = vertices_vec.iter().map(|vert| vert.position).collect();
-        let normals: Vec<_> = vertices_vec.iter().map(|vert| vert.normal).collect();
-        let uvs: Vec<_> = vertices_vec.iter().map(|vert| vert.uv).collect();
-
-        let indices = Indices::U32(indices_vec);
-
-        let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
-        mesh.set_indices(Some(indices));
-        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
-        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-        mesh
     }
 }
 
@@ -113,102 +149,6 @@ fn init_cube_sphere(
         } else {
             debug!("Spawn CubeSphere");
             *mesh_handle = meshes.add(Mesh::from(cube_sphere));
-        }
-    }
-}
-
-#[allow(dead_code)]
-pub struct CubeSphereDebugPlugin;
-
-impl Plugin for CubeSphereDebugPlugin {
-    fn build(&self, app: &mut App) {
-        app.register_type::<CubeSphereDebugInfo>()
-            .add_plugin(WireframePlugin)
-            .add_startup_system_to_stage(StartupStage::PostStartup, insert_debug_components)
-            .add_system(toggle_wireframe)
-            .add_system(update_cube_sphere);
-    }
-}
-
-#[derive(Component, Debug, Reflect, InspectorOptions)]
-#[reflect(Component, Default, InspectorOptions)]
-struct CubeSphereDebugInfo {
-    show_wireframe: bool,
-    outdated: bool,
-
-    #[inspector(suffix = " read-only")]
-    num_vertices: usize,
-    #[inspector(suffix = " read-only")]
-    num_indices: usize,
-
-    #[reflect(ignore)]
-    old_data: CubeSphere,
-}
-
-impl Default for CubeSphereDebugInfo {
-    fn default() -> Self {
-        Self {
-            show_wireframe: true,
-            outdated: true,
-            old_data: CubeSphere::default(),
-            num_vertices: 0,
-            num_indices: 0,
-        }
-    }
-}
-
-fn insert_debug_components(mut commands: Commands, query: Query<Entity, With<CubeSphere>>) {
-    // println!("{:?}", query);
-    info!("Enabled CubeSphere debugging!");
-    for entt in query.iter() {
-        if let Some(mut entity) = commands.get_entity(entt) {
-            entity.insert(CubeSphereDebugInfo::default());
-        };
-    }
-}
-
-fn toggle_wireframe(mut commands: Commands, query: Query<(Entity, &mut CubeSphereDebugInfo)>) {
-    // println!("{:?}", query);
-    for (entt, debug_info) in query.iter() {
-        if let Some(mut entity) = commands.get_entity(entt) {
-            if debug_info.show_wireframe {
-                entity.insert(Wireframe);
-            } else {
-                entity.remove::<Wireframe>();
-            }
-        };
-    }
-}
-
-fn update_cube_sphere(
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut query: Query<(&CubeSphere, &mut CubeSphereDebugInfo, &mut Handle<Mesh>)>,
-) {
-    // println!("{:?}", query);
-    for (cube_sphere_data, mut debug_info, cube_mesh_handle) in query.iter_mut() {
-        if *cube_sphere_data != debug_info.old_data {
-            debug_info.outdated = true;
-            debug_info.old_data = cube_sphere_data.clone();
-        }
-
-        if !debug_info.outdated {
-            return;
-        }
-
-        if let Some(cube_mesh) = meshes.get_mut(&cube_mesh_handle) {
-            *cube_mesh = Mesh::from(cube_sphere_data);
-
-            debug_info.outdated = false;
-
-            match cube_mesh.attribute(Mesh::ATTRIBUTE_POSITION) {
-                Some(val) => debug_info.num_vertices = val.len(),
-                None => debug_info.num_vertices = 0,
-            }
-
-            match cube_mesh.indices() {
-                Some(indices) => debug_info.num_indices = indices.len(),
-                None => debug_info.num_indices = 0,
-            }
         }
     }
 }
