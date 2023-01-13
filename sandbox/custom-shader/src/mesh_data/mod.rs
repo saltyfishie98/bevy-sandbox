@@ -1,6 +1,9 @@
 mod cube_sphere;
 pub use cube_sphere::*;
 
+mod mesh_noise;
+pub use mesh_noise::*;
+
 pub trait ProceduralShape {
     fn generate_data(&self) -> (VerticesData, IndicesData);
 }
