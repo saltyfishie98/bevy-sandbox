@@ -180,10 +180,14 @@ fn create_face_vertices(
     let y_unit_vector: Vec3;
 
     let z_unit_vector = face_direction.normalize();
-    if z_unit_vector == Vec3::from([0.0, 0.0, 1.0]) || z_unit_vector == Vec3::from([0.0, 0.0, -1.0])
-    {
-        x_unit_vector = Vec3::from([0.0, 1.0, 0.0]).cross(z_unit_vector);
-        y_unit_vector = z_unit_vector.cross(x_unit_vector);
+    if z_unit_vector == Vec3::from([0.0, 0.0, 1.0]) {
+        x_unit_vector = Vec3::from([1.0, 0.0, 0.0]);
+        y_unit_vector = Vec3::from([0.0, 1.0, 0.0]);
+        //
+    } else if z_unit_vector == Vec3::from([0.0, 0.0, -1.0]) {
+        x_unit_vector = Vec3::from([-1.0, 0.0, 0.0]);
+        y_unit_vector = Vec3::from([0.0, 1.0, 0.0]);
+        //
     } else {
         x_unit_vector = Vec3::from([0.0, 0.0, 1.0]).cross(z_unit_vector);
         y_unit_vector = z_unit_vector.cross(x_unit_vector);
