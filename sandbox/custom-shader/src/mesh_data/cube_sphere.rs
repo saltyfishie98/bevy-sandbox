@@ -1,6 +1,7 @@
-use super::{IndicesData, InspectableMesh, InspectorInfo, ProceduralShape, VerticesData};
+use super::{IndicesData, Inspectable, ProceduralShape, VerticesData};
 use crate::mesh_data::VertexData;
 use bevy::{
+    pbr::wireframe::Wireframe,
     prelude::*,
     render::{mesh::Indices, render_resource::PrimitiveTopology},
 };
@@ -77,17 +78,61 @@ impl ProceduralShape for CubeSphere {
     }
 }
 
-impl InspectableMesh<CubeSphere> for CubeSphere {
+#[derive(Component, Debug, Reflect, InspectorOptions)]
+#[reflect(Component, InspectorOptions)]
+pub struct CubeSphereInfo {
+    pub show_wireframe: bool,
+    pub outdated: bool,
+
+    #[inspector(suffix = " read-only")]
+    pub num_vertices: usize,
+    #[inspector(suffix = " read-only")]
+    pub num_indices: usize,
+
+    #[reflect(ignore)]
+    pub old_data: CubeSphere,
+    #[reflect(ignore)]
+    pub old_wireframe_setting: bool,
+}
+
+impl Default for CubeSphereInfo {
+    fn default() -> Self {
+        Self {
+            show_wireframe: true,
+            outdated: true,
+            num_vertices: 0,
+            num_indices: 0,
+            old_data: CubeSphere::default(),
+            old_wireframe_setting: false,
+        }
+    }
+}
+
+impl Inspectable<CubeSphere> for CubeSphere {
+    type InspectorInfo = CubeSphereInfo;
+
     fn update_info(
+        mut commands: Commands,
         mut meshes: ResMut<Assets<Mesh>>,
-        mut query: Query<(
-            &CubeSphere,
-            &mut InspectorInfo<CubeSphere>,
-            &mut Handle<Mesh>,
-        )>,
+        mut query: Query<(Entity, &CubeSphere, &mut CubeSphereInfo, &mut Handle<Mesh>)>,
     ) {
         // println!("{:?}", query);
-        for (cube_sphere_data, mut debug_info, cube_mesh_handle) in query.iter_mut() {
+        for (entt, cube_sphere_data, mut debug_info, cube_mesh_handle) in query.iter_mut() {
+            //
+            // Check if need to toggle wireframe
+            if debug_info.show_wireframe != debug_info.old_wireframe_setting {
+                if let Some(mut entity) = commands.get_entity(entt) {
+                    if debug_info.show_wireframe {
+                        entity.insert(Wireframe);
+                        debug_info.old_wireframe_setting = true;
+                    } else {
+                        entity.remove::<Wireframe>();
+                        debug_info.old_wireframe_setting = false;
+                    }
+                };
+            }
+
+            // Check is data outdated
             if *cube_sphere_data != debug_info.old_data {
                 debug_info.outdated = true;
                 debug_info.old_data = cube_sphere_data.clone();
@@ -97,6 +142,7 @@ impl InspectableMesh<CubeSphere> for CubeSphere {
                 return;
             }
 
+            // Update mesh
             if let Some(cube_mesh) = meshes.get_mut(&cube_mesh_handle) {
                 *cube_mesh = Mesh::from(cube_sphere_data);
 

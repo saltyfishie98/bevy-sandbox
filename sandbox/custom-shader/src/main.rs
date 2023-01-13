@@ -57,7 +57,7 @@ fn main() {
     #[cfg(debug_assertions)]
     application
         .add_plugin(WorldInspectorPlugin)
-        .add_plugin(mesh_data::InspectablePlugin::<CubeSphere>::default());
+        .add_plugin(mesh_data::InspectPlugin::<CubeSphere>::default());
 
     application.run();
 }
